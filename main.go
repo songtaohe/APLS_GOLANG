@@ -6,9 +6,11 @@ import (
 	"os"
 	"io/ioutil"
 	"math"
-	"strconv"
-	"sort"
+	//"strconv"
+	//"sort"
 	"github.com/dhconnelly/rtreego"
+	"container/heap"
+
 )
 
 type graph struct{
@@ -49,6 +51,7 @@ func loc2key(loc [2]float64) string {
 }
 
 func LoadGraphFromJson(filename string) *graph{
+	fmt.Println("loading graphs", filename)
 	g := new(graph)
 
 	g.loc2index = make(map[string]int)
@@ -69,6 +72,7 @@ func LoadGraphFromJson(filename string) *graph{
 	nodes := rawresult[0].([]interface{})
 	edges := rawresult[1].([]interface{})
 
+	fmt.Println("loading nodes", len(nodes))
 	for ind, node := range nodes {
 		loc := [2]float64{node.([]interface{})[0].(float64), node.([]interface{})[1].(float64)}
 		g.Nodes = append(g.Nodes, loc)
@@ -83,8 +87,9 @@ func LoadGraphFromJson(filename string) *graph{
 
 	}
 
+	fmt.Println("loading edges", len(edges))
 	for _, edge := range edges {
-		link := [2]int{edge.([]interface{})[0].(int), edge.([]interface{})[1].(int)}
+		link := [2]int{int(edge.([]interface{})[0].(float64)), int(edge.([]interface{})[1].(float64))}
 		g.Edges = append(g.Edges, link)
 	}	
 
@@ -99,9 +104,11 @@ func (g *graph) addEdge(loc1 [2]float64, loc2 [2]float64) {
 
 	if _, ok := g.loc2index[sk1]; ok {
 		nid1 = g.loc2index[sk1]
+		//fmt.Println("never hit?")
 	} else {
 		nid1 = len(g.Nodes)
 		g.Nodes = append(g.Nodes, loc1)
+		g.loc2index[sk1] = nid1
 	}
 
 	if _, ok := g.loc2index[sk2]; ok {
@@ -109,9 +116,11 @@ func (g *graph) addEdge(loc1 [2]float64, loc2 [2]float64) {
 	} else {
 		nid2 = len(g.Nodes)
 		g.Nodes = append(g.Nodes, loc2)
+		g.loc2index[sk2] = nid2
 	}
 
 	g.Edges = append(g.Edges, [2]int{nid1, nid2})
+
 
 	if _, ok := g.neighbors[nid1]; ok {
 		g.neighbors[nid1][nid2] = true
@@ -132,6 +141,9 @@ func (g *graph) addEdge(loc1 [2]float64, loc2 [2]float64) {
 
 func GraphDensify(g *graph) *graph {
 	ng := new(graph)
+	ng.loc2index = make(map[string]int)
+	ng.neighbors = make(map[int]map[int]bool)
+
 
 	for _, edge := range g.Edges {
 		n1 := edge[0]
@@ -139,8 +151,9 @@ func GraphDensify(g *graph) *graph {
 
 		d := GPSDistance(g.Nodes[n1], g.Nodes[n2])
 
-		if d > 0.000003 {
-			n := int(d/0.000002)+1
+		if d > 3.0 {
+
+			n := int(d/2.0)+1
 			for i :=0; i<n;i++ {
 				alpha1 := float64(i)/float64(n)
 				alpha2 := float64(i+1)/float64(n)
@@ -165,6 +178,7 @@ func GraphDensify(g *graph) *graph {
 		}
 	}
 
+	fmt.Println("densify graph ", len(g.Nodes), len(ng.Nodes))
 	return ng 
 }
 
@@ -178,6 +192,7 @@ func apls_one_way(graph_gt *graph, graph_prop *graph) float64 {
 
 	for nid, _ := range graph_gt.Nodes {
 		if len(graph_gt.neighbors[nid]) != 2 {
+			//fmt.Println("len(graph_gt.neighbors[nid])", nid, graph_gt.neighbors[nid])
 			for next_nid, _ := range graph_gt.neighbors[nid] {
 				if _,ok := visited[next_nid];ok {
 					continue 
@@ -190,6 +205,7 @@ func apls_one_way(graph_gt *graph, graph_prop *graph) float64 {
 				last_nid := nid
 				current_nid := next_nid 
 
+				//fmt.Println("inloop")
 				for len(graph_gt.neighbors[current_nid]) == 2 {
 					var s int = 0 
 					for k,_ := range graph_gt.neighbors[current_nid] {
@@ -200,24 +216,26 @@ func apls_one_way(graph_gt *graph, graph_prop *graph) float64 {
 
 					chain = append(chain, current_nid)
 				}
+				//fmt.Println("outloop")
 
-				if len(chain) > 15 {
-					n := int(float64(len(chain)) / 15.0) + 1
+				if len(chain) > 37 { // 50 meters
+					n := int(float64(len(chain)) / 25.0) + 1
 
 					for i := 1; i < n; i ++ {
-						idx = int(float64(len(chain)) * float64(i)/float64(n))
+						idx := int(float64(len(chain)) * float64(i)/float64(n))
 
-						control_point_gt[idx] = -1
+						control_point_gt[chain[idx]] = -1
 					}
 				}
 
 				for _, cnid := range chain {
 					visited[cnid] = true
 				}
-
 			}
 
-			control_point_gt[nid] = -1
+			//control_point_gt[nid] = -1
+		} else {
+
 		}
 	}
 
@@ -242,15 +260,263 @@ func apls_one_way(graph_gt *graph, graph_prop *graph) float64 {
 		q := rtreego.Point{graph_gt.Nodes[nid1][0], graph_gt.Nodes[nid1][1]}
 		results := rt.NearestNeighbors(1, q)
 
-		if GPSDistance(results[0].loc, graph_gt.Nodes[nid1]) < 15.0 {
-			control_point_gt[nid1] = results[0].nid
+		if GPSDistance(results[0].(*gpsnode).loc, graph_gt.Nodes[nid1]) < 15.0 {
+			control_point_gt[nid1] = results[0].(*gpsnode).nid
 			matched_point += 1
 		}
 	}
 
 	fmt.Println("snapped to proposal graph, matched nodes:", matched_point)
 
+
+	fmt.Println("Finding shortest paths")
+
+
+	var cc float64 = 0.0 
+	var sum float64 = 0.0 
+	var pair_num int = 0 
+
+	var control_point_prop_list []int 
+	control_point_prop_map := make(map[int]bool)
+	var control_point_gt_list []int 
+
+	for cp1_gt, cp1_prop := range  control_point_gt {
+		control_point_gt_list = append(control_point_gt_list, cp1_gt)
+		if _, ok := control_point_prop_map[cp1_prop]; ok {
+
+		} else {
+			control_point_prop_map[cp1_prop] = true
+			control_point_prop_list = append(control_point_prop_list, cp1_prop)
+		}
+	}
+
+	shortest_paths_gt := make(map[int]map[int]float64)
+	shortest_paths_prop := make(map[int]map[int]float64)
+
+	var counter = 0 
+	for _, cp_prop := range control_point_prop_list {
+		shortest_paths_prop[cp_prop] = graph_prop.ShortestPaths(cp_prop, control_point_prop_list)
+		counter += 1 
+
+		if counter % 100 == 0 {
+			fmt.Println("computing prop graph shortest paths ", counter, len(control_point_prop_list))
+		}
+	}
+
+	counter = 0
+
+	for _, cp_gt := range  control_point_gt_list {
+		shortest_paths_gt[cp_gt] = graph_gt.ShortestPaths(cp_gt, control_point_gt_list )
+		counter += 1
+
+		if counter % 100 == 0 {
+			fmt.Println("computing gt graph shortest paths ", counter, len(control_point_gt_list))
+		}
+	}
+
+
+	for cp1_gt, cp1_prop := range  control_point_gt {
+		for cp2_gt, cp2_prop := range  control_point_gt {
+			if cp2_gt <= cp1_gt {
+				continue
+			}
+
+			pair_num += 1 
+
+			d1 := shortest_paths_gt[cp1_gt][cp2_gt]
+
+
+			if d1 > 10.0 {
+				d2 := shortest_paths_prop[cp1_prop][cp2_prop]
+
+				if d2 < 0 {
+					d2 = 0 
+				}
+
+				s := math.Abs(d1 - d2) / d1
+				if s > 1.0 {
+					s = 1.0
+				}
+
+				cc += 1.0
+				sum += s 
+
+			}
+
+			// if int(cc) % 1000 == 0 {
+			// 	fmt.Println(int(cc), "current apls:", 1.0 - sum/cc, "progress:", float64(pair_num) / float64(len(control_point_gt) * len(control_point_gt)/2) * 100.0)
+			// }
+
+		}
+	}
+
+
+	return 1.0 - sum/cc
+}
+
+
+type NodeItem struct {
+	nid 		int 
+	distance	int 
+	index 		int 
+}
+
+type PriorityQueue []*NodeItem
+
+func (pq PriorityQueue) Len() int { return len(pq) }
+
+func (pq PriorityQueue) Less(i, j int) bool {
 	
+	return pq[i].distance < pq[j].distance
+}
+
+func (pq PriorityQueue) Swap(i, j int) {
+	pq[i], pq[j] = pq[j], pq[i]
+	pq[i].index = i
+	pq[j].index = j
+}	
+
+func (pq *PriorityQueue) Push(x interface{}) {
+	n := len(*pq)
+	item := x.(*NodeItem)
+	item.index = n
+	*pq = append(*pq, item)
+}
+
+func (pq *PriorityQueue) Pop() interface{} {
+	old := *pq
+	n := len(old)
+	item := old[n-1]
+	old[n-1] = nil
+	*pq = old[0 : n-1]
+	return item
+}
+
+func (pq *PriorityQueue) update(item *NodeItem, distance int) {
+	item.distance = distance
+	heap.Fix(pq, item.index)
+}
+
+
+func (g *graph) ShortestPath(nid1 int, nid2 int) float64 {
+	mindistance := make(map[int]int)
+
+	for nid, _ := range g.Nodes {
+		mindistance[nid] = 100000000000
+	}
+
+	mindistance[nid1] = 0
+
+	queuemap := make(map[int]*NodeItem)
+	pq := make(PriorityQueue, 1)
+
+
+	nodeitem := NodeItem{nid: nid1, distance: 0}
+	queuemap[nid1] = &nodeitem
+	pq[0] = &nodeitem
+
+	heap.Init(&pq)
+
+	var result int = -1
+
+	for pq.Len() > 0 {
+		cur_node_item := heap.Pop(&pq).(*NodeItem)
+		delete(queuemap, cur_node_item.nid)
+
+		if cur_node_item.nid == nid2 {
+			result = cur_node_item.distance
+		}
+
+		for next_nid, _ := range g.neighbors[cur_node_item.nid] {
+			d := int(GPSDistance(g.Nodes[cur_node_item.nid], g.Nodes[next_nid]) * 100.0)
+
+			if d + mindistance[cur_node_item.nid] < mindistance[next_nid] {
+				mindistance[next_nid] = d + mindistance[cur_node_item.nid]
+
+				if v, ok := queuemap[next_nid]; ok {
+					pq.update(v, mindistance[next_nid])
+				} else {
+					nodeitem := NodeItem{nid: next_nid, distance: mindistance[next_nid]}
+					heap.Push(&pq, &nodeitem)
+					queuemap[next_nid] = &nodeitem
+				}
+			}
+		}
+	}
+
+	return float64(result)/100.0
+}
+
+func (g *graph) ShortestPaths(nid1 int, nid2 []int) map[int]float64 {
+
+	result := make(map[int]float64)
+	for _, v := range nid2 {
+		result[v] = -1.0
+	}
+
+	mindistance := make(map[int]int)
+
+	for nid, _ := range g.Nodes {
+		mindistance[nid] = 100000000000
+	}
+
+	mindistance[nid1] = 0
+
+	queuemap := make(map[int]*NodeItem)
+	pq := make(PriorityQueue, 1)
+
+
+	nodeitem := NodeItem{nid: nid1, distance: 0}
+	queuemap[nid1] = &nodeitem
+	pq[0] = &nodeitem
+
+	heap.Init(&pq)
+	for pq.Len() > 0 {
+		cur_node_item := heap.Pop(&pq).(*NodeItem)
+		delete(queuemap, cur_node_item.nid)
+
+		if _, ok := result[cur_node_item.nid]; ok {
+			result[cur_node_item.nid] = float64(cur_node_item.distance) / 100.0
+		}
+		
+
+		for next_nid, _ := range g.neighbors[cur_node_item.nid] {
+			d := int(GPSDistance(g.Nodes[cur_node_item.nid], g.Nodes[next_nid]) * 100.0)
+
+			if d + mindistance[cur_node_item.nid] < mindistance[next_nid] {
+				mindistance[next_nid] = d + mindistance[cur_node_item.nid]
+
+				if v, ok := queuemap[next_nid]; ok {
+					pq.update(v, mindistance[next_nid])
+				} else {
+					nodeitem := NodeItem{nid: next_nid, distance: mindistance[next_nid]}
+					heap.Push(&pq, &nodeitem)
+					queuemap[next_nid] = &nodeitem
+				}
+			}
+		}
+	}
+
+	return result 
+}
+
+func apls(graph_gt *graph, graph_prop *graph) {
+	apls_gt := apls_one_way(graph_gt, graph_prop)
+	apls_prop := apls_one_way(graph_prop, graph_gt)
+
+	fmt.Println(apls_gt, apls_prop, (apls_gt+apls_prop)/2.0)
+
+}
+
+func main() {
+	graph_gt := LoadGraphFromJson(os.Args[1])
+	graph_prop := LoadGraphFromJson(os.Args[2])
+
+	graph_gt_dense := GraphDensify(graph_gt)
+	graph_prop_dense := GraphDensify(graph_prop)
+
+	apls(graph_gt_dense, graph_prop_dense)
+
 }
 
 
