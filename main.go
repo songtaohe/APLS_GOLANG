@@ -186,7 +186,7 @@ func GraphDensify(g *graph) *graph {
 }
 
 
-func apls_one_way(graph_gt *graph, graph_prop *graph) float64 {
+func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 
 	// sample control point on graph 
 	visited := make(map[int]bool)
@@ -265,7 +265,7 @@ func apls_one_way(graph_gt *graph, graph_prop *graph) float64 {
 		q := rtreego.Point{graph_gt.Nodes[nid1][0], graph_gt.Nodes[nid1][1]}
 		results := rt.NearestNeighbors(1, q)
 
-		if GPSDistance(results[0].(*gpsnode).loc, graph_gt.Nodes[nid1]) < 15.0 {
+		if GPSDistance(results[0].(*gpsnode).loc, graph_gt.Nodes[nid1]) < 8.0 {
 			control_point_gt[nid1] = results[0].(*gpsnode).nid
 			matched_point += 1
 		}
@@ -304,6 +304,8 @@ func apls_one_way(graph_gt *graph, graph_prop *graph) float64 {
 	var counter = 0 
 	//var debugind = 0 
 	//var debug map[int]int
+
+
 	for _, cp_prop := range control_point_prop_list {
 		shortest_paths_prop[cp_prop], _ = graph_prop.ShortestPaths(cp_prop, control_point_prop_list)
 		counter += 1 
@@ -373,7 +375,7 @@ func apls_one_way(graph_gt *graph, graph_prop *graph) float64 {
 			d1 := shortest_paths_gt[cp1_gt][cp2_gt]
 
 
-			if d1 > 10.0 {
+			if d1 > 100.0 {
 				d2 := shortest_paths_prop[cp1_prop][cp2_prop]
 
 				if d2 < 0 {
@@ -397,8 +399,8 @@ func apls_one_way(graph_gt *graph, graph_prop *graph) float64 {
 		}
 	}
 
-
-	return 1.0 - sum/cc
+	ret <- 1.0 - sum/cc
+	//return 
 }
 
 
@@ -554,9 +556,14 @@ func (g *graph) ShortestPaths(nid1 int, nid2 []int) (map[int]float64, map[int]in
 }
 
 func apls(graph_gt *graph, graph_prop *graph) {
-	apls_gt := apls_one_way(graph_gt, graph_prop)
-	apls_prop := apls_one_way(graph_prop, graph_gt)
+	c1 := make(chan float64, 1)
+	c2 := make(chan float64, 1)
 
+	go apls_one_way(graph_gt, graph_prop,c1)
+	go apls_one_way(graph_prop, graph_gt,c2)
+
+	apls_gt := <- c1 
+	apls_prop := <- c2
 	fmt.Println(apls_gt, apls_prop, (apls_gt+apls_prop)/2.0)
 
 	d1 := []byte(fmt.Sprintf("%f %f %f\n", apls_gt, apls_prop, (apls_gt+apls_prop)/2.0))
