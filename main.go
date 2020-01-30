@@ -392,8 +392,15 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 
 			d1 := shortest_paths_gt[cp1_gt][cp2_gt]
 
+			// if cp1_prop == -1 || cp2_prop == -1 {
+			// 	fmt.Println(shortest_paths_prop[cp1_prop][cp2_prop])
+			// }
 
-			if d1 > 300.0 {
+			if cp1_prop == -1 || cp2_prop == -1 {
+				cc += 1.0
+				sum += 0.0
+
+			} else if d1 > 300.0 {
 				d2 := shortest_paths_prop[cp1_prop][cp2_prop]
 
 				if d2 < 0 {
@@ -407,7 +414,6 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 
 				cc += 1.0
 				sum += s 
-
 			}
 
 			// if int(cc) % 1000 == 0 {
