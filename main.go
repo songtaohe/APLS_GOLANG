@@ -507,7 +507,7 @@ func apls(graph_gt *graph, graph_prop *graph) {
 	fmt.Println(apls_gt, apls_prop, (apls_gt+apls_prop)/2.0)
 
 	d1 := []byte(fmt.Sprintf("%f %f %f\n", apls_gt, apls_prop, (apls_gt+apls_prop)/2.0))
-    _ := ioutil.WriteFile(os.Args[3], d1, 0644)
+    _ = ioutil.WriteFile(os.Args[3], d1, 0644)
     
 }
 
