@@ -58,8 +58,6 @@ func (s *gpsnode) Bounds() *rtreego.Rect {
   return rtreego.Point{s.loc[0], s.loc[1]}.ToRect(tol)
 }
 
-
-
 func loc2key(loc [2]float64) string {
 	return fmt.Sprintf("%.7f_%.7f", loc[0], loc[1])
 }
@@ -149,8 +147,6 @@ func (g *graph) addEdge(loc1 [2]float64, loc2 [2]float64) {
 		g.neighbors[nid2] = make(map[int]bool)
 		g.neighbors[nid2][nid1] = true
 	}
-
-
 }
 
 func GraphDensify(g *graph) *graph {
@@ -199,11 +195,15 @@ func GraphDensify(g *graph) *graph {
 	return ng 
 }
 
+func lockey(loc [2]float64, dist float64) string {
+	return fmt.Sprintf("%d_%d", int(loc[0]*111111.0/dist), int(loc[1]*111111.0/dist))
+}
 
 func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 
 	// sample control point on graph 
 	visited := make(map[int]bool)
+	lockeys := make(map[string]bool)
 
 	control_point_gt := make(map[int]int)
 
@@ -242,7 +242,13 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 						idx := int(float64(len(chain)) * float64(i)/float64(n))
 
 						if GPSInBound(graph_gt.Nodes[chain[idx]]) {
-							control_point_gt[chain[idx]] = -1
+
+							lk := lockey(graph_gt.Nodes[chain[idx]], 20.0)
+
+							if _, ok := lockeys[lk]; !ok {
+								lockeys[lk] = true
+								control_point_gt[chain[idx]] = -1
+							}
 						}
 					}
 				}
@@ -253,7 +259,11 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 			}
 
 			if GPSInBound(graph_gt.Nodes[nid]) {
-				control_point_gt[nid] = -1
+				lk := lockey(graph_gt.Nodes[nid], 20.0)
+				if _, ok := lockeys[lk]; !ok {
+					lockeys[lk] = true
+					control_point_gt[nid] = -1
+				}
 			}
 
 			//control_point_gt[nid] = -1
@@ -263,6 +273,8 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 	}
 
 	fmt.Println("ground truth map control points: ", len(control_point_gt))
+
+
 
 	// snap to proposal map 
 	// - create index 
