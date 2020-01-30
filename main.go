@@ -152,7 +152,6 @@ func GraphDensify(g *graph) *graph {
 		d := GPSDistance(g.Nodes[n1], g.Nodes[n2])
 
 		if d > 3.0 {
-
 			n := int(d/2.0)+1
 			for i :=0; i<n;i++ {
 				alpha1 := float64(i)/float64(n)
@@ -175,6 +174,10 @@ func GraphDensify(g *graph) *graph {
 					ng.addEdge(loc1,loc2)
 				}
 			}
+		} else {
+			loc1 := g.Nodes[n1]
+			loc2 := g.Nodes[n2]
+			ng.addEdge(loc1,loc2)
 		}
 	}
 
@@ -233,6 +236,8 @@ func apls_one_way(graph_gt *graph, graph_prop *graph) float64 {
 				}
 			}
 
+			control_point_gt[nid] = -1
+
 			//control_point_gt[nid] = -1
 		} else {
 
@@ -281,6 +286,9 @@ func apls_one_way(graph_gt *graph, graph_prop *graph) float64 {
 	var control_point_gt_list []int 
 
 	for cp1_gt, cp1_prop := range  control_point_gt {
+		if cp1_prop == -1 {
+			continue
+		}
 		control_point_gt_list = append(control_point_gt_list, cp1_gt)
 		if _, ok := control_point_prop_map[cp1_prop]; ok {
 
@@ -294,19 +302,58 @@ func apls_one_way(graph_gt *graph, graph_prop *graph) float64 {
 	shortest_paths_prop := make(map[int]map[int]float64)
 
 	var counter = 0 
+	//var debugind = 0 
+	//var debug map[int]int
 	for _, cp_prop := range control_point_prop_list {
-		shortest_paths_prop[cp_prop] = graph_prop.ShortestPaths(cp_prop, control_point_prop_list)
+		shortest_paths_prop[cp_prop], _ = graph_prop.ShortestPaths(cp_prop, control_point_prop_list)
 		counter += 1 
 
 		if counter % 100 == 0 {
 			fmt.Println("computing prop graph shortest paths ", counter, len(control_point_prop_list))
+
+			// if counter == 100 {
+			// 	fmt.Println("dump debug paths")
+			// 	for _, cp_prop2 := range control_point_prop_list {
+			// 		var trace [][2]float64
+			// 		current := cp_prop2
+
+			// 		for {
+			// 			if debug[current] < 0 {
+			// 				break
+			// 			}
+
+			// 			if debug[current] == current {
+			// 				break 
+			// 			}
+
+			// 			trace = append(trace,graph_prop.Nodes[current])
+			// 			current = debug[current]
+			// 		}
+
+			// 		if len(trace)>0 {
+			// 			dat, _ := json.MarshalIndent(trace, "  ", "  ")
+			// 			_=ioutil.WriteFile(fmt.Sprintf("debug/trace%d.json", debugind), dat, 0644)
+			// 			debugind += 1 
+			// 		}
+			// 	}
+			// }
+
+
 		}
 	}
+
+	var trace [][2]float64
+	for _, cp_prop := range control_point_prop_list {
+		trace = append(trace, graph_prop.Nodes[cp_prop])
+	}
+
+	dat, _ := json.MarshalIndent(trace, "  ", "  ")
+	_=ioutil.WriteFile("debug/cp.json", dat, 0644)
 
 	counter = 0
 
 	for _, cp_gt := range  control_point_gt_list {
-		shortest_paths_gt[cp_gt] = graph_gt.ShortestPaths(cp_gt, control_point_gt_list )
+		shortest_paths_gt[cp_gt], _ = graph_gt.ShortestPaths(cp_gt, control_point_gt_list )
 		counter += 1
 
 		if counter % 100 == 0 {
@@ -447,12 +494,17 @@ func (g *graph) ShortestPath(nid1 int, nid2 int) float64 {
 	return float64(result)/100.0
 }
 
-func (g *graph) ShortestPaths(nid1 int, nid2 []int) map[int]float64 {
+func (g *graph) ShortestPaths(nid1 int, nid2 []int) (map[int]float64, map[int]int) {
 
 	result := make(map[int]float64)
+	previous := make(map[int]int)
+
 	for _, v := range nid2 {
 		result[v] = -1.0
+		previous[v] = -1
 	}
+
+	previous[nid1] = nid1 
 
 	mindistance := make(map[int]int)
 
@@ -479,12 +531,13 @@ func (g *graph) ShortestPaths(nid1 int, nid2 []int) map[int]float64 {
 			result[cur_node_item.nid] = float64(cur_node_item.distance) / 100.0
 		}
 		
-
 		for next_nid, _ := range g.neighbors[cur_node_item.nid] {
 			d := int(GPSDistance(g.Nodes[cur_node_item.nid], g.Nodes[next_nid]) * 100.0)
 
 			if d + mindistance[cur_node_item.nid] < mindistance[next_nid] {
 				mindistance[next_nid] = d + mindistance[cur_node_item.nid]
+
+				previous[next_nid] = cur_node_item.nid
 
 				if v, ok := queuemap[next_nid]; ok {
 					pq.update(v, mindistance[next_nid])
@@ -497,7 +550,7 @@ func (g *graph) ShortestPaths(nid1 int, nid2 []int) map[int]float64 {
 		}
 	}
 
-	return result 
+	return result, previous 
 }
 
 func apls(graph_gt *graph, graph_prop *graph) {
