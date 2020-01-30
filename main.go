@@ -30,6 +30,20 @@ func GPSDistance(p1 [2]float64, p2 [2]float64) float64 {
 	return math.Sqrt(a*a + b*b)
 }
 
+func GPSInBound(p1 [2]float64) bool {
+	lat_top_left := 41.0 
+	lon_top_left := -71.0
+
+	lat2 := lat_top_left - 2048.0/111111.0
+	lon2 := lon_top_left + 2048.0/111111.0 / math.Cos(lat_top_left/180.0 * 3.1415926)
+
+	if p1[0] > lat2 + 100.0/111111.0 && p1[0] < lat_top_left - 100.0/111111.0 && p1[1] > lon_top_left + 100.0/111111.0 / math.Cos(lat_top_left/180.0 * 3.1415926) && p1[1] < lon2 - 100.0/111111.0 / math.Cos(lat_top_left/180.0 * 3.1415926) {
+		return true
+	} else {
+		return false 
+	}
+}
+
 type gpsnode struct {
 	nid int 
 	loc [2]float64
@@ -227,7 +241,9 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 					for i := 1; i < n; i ++ {
 						idx := int(float64(len(chain)) * float64(i)/float64(n))
 
-						control_point_gt[chain[idx]] = -1
+						if GPSInBound(graph_gt.Nodes[chain[idx]]) {
+							control_point_gt[chain[idx]] = -1
+						}
 					}
 				}
 
@@ -236,7 +252,9 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 				}
 			}
 
-			control_point_gt[nid] = -1
+			if GPSInBound(graph_gt.Nodes[nid]) {
+				control_point_gt[nid] = -1
+			}
 
 			//control_point_gt[nid] = -1
 		} else {
@@ -375,7 +393,7 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 			d1 := shortest_paths_gt[cp1_gt][cp2_gt]
 
 
-			if d1 > 100.0 {
+			if d1 > 300.0 {
 				d2 := shortest_paths_prop[cp1_prop][cp2_prop]
 
 				if d2 < 0 {
