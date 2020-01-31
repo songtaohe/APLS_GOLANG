@@ -295,7 +295,7 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 		q := rtreego.Point{graph_gt.Nodes[nid1][0], graph_gt.Nodes[nid1][1]}
 		results := rt.NearestNeighbors(1, q)
 
-		if GPSDistance(results[0].(*gpsnode).loc, graph_gt.Nodes[nid1]) < 4.0 {
+		if GPSDistance(results[0].(*gpsnode).loc, graph_gt.Nodes[nid1]) < 5.0 {
 			control_point_gt[nid1] = results[0].(*gpsnode).nid
 			matched_point += 1
 		}
@@ -316,7 +316,9 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 	var control_point_gt_list []int 
 
 	for cp1_gt, cp1_prop := range  control_point_gt {
-		if cp1_prop == -1 {
+		
+
+		if cp1_prop < 0 {
 			continue
 		}
 		control_point_gt_list = append(control_point_gt_list, cp1_gt)
@@ -402,7 +404,7 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 
 			pair_num += 1 
 
-			d1 := shortest_paths_gt[cp1_gt][cp2_gt]
+			
 
 			// if cp1_prop == -1 || cp2_prop == -1 {
 			// 	fmt.Println(shortest_paths_prop[cp1_prop][cp2_prop])
@@ -410,9 +412,12 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 
 			if cp1_prop == -1 || cp2_prop == -1 {
 				cc += 1.0
-				sum += 0.0
+				sum += 1.0
+				continue 
+			} 
 
-			} else if d1 > 100.0 {
+			d1 := shortest_paths_gt[cp1_gt][cp2_gt]
+			if d1 > 100.0 {
 				d2 := shortest_paths_prop[cp1_prop][cp2_prop]
 
 				if d2 < 0 {
