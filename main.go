@@ -295,7 +295,7 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 		q := rtreego.Point{graph_gt.Nodes[nid1][0], graph_gt.Nodes[nid1][1]}
 		results := rt.NearestNeighbors(1, q)
 
-		if GPSDistance(results[0].(*gpsnode).loc, graph_gt.Nodes[nid1]) < 5.0 {
+		if GPSDistance(results[0].(*gpsnode).loc, graph_gt.Nodes[nid1]) < 10.0 {
 			control_point_gt[nid1] = results[0].(*gpsnode).nid
 			matched_point += 1
 		}
