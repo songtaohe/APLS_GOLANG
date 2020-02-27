@@ -23,6 +23,41 @@ type graph struct{
 	neighbors map[int]map[int]bool
 }
 
+
+func (g * graph) propagate(nid int, step int, action func(nid int)) {
+	
+	visited := make(map[int]int)
+	var queue []int = []int{nid}
+
+	visited[nid] = 0 
+
+	for len(queue) > 0 {
+		current_nid := queue[0]
+		if len(queue) > 1 {
+			queue = queue[1:]
+		} else {
+			queue = []int{}
+		}
+
+		if visited[current_nid] > step {
+			continue
+		}
+
+		action(current_nid)
+
+		for k,_ := range g.neighbors[current_nid] {
+			if _, ok := visited[k]; ok {
+				// do nothing
+			} else {
+				queue = append(queue, k)
+				visited[k] = visited[current_nid] + 1 
+			}
+		}
+	}
+}
+
+
+
 func GPSDistance(p1 [2]float64, p2 [2]float64) float64 {
 	a := (p1[0] - p2[0]) * 111111.0 
 	b := (p1[1] - p2[1]) * 111111.0 * math.Cos(p1[0]/360.0 *  2.0 * math.Pi)
@@ -280,6 +315,8 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 	// - create index 
 	rt := rtreego.NewTree(2, 25, 50)
 
+	node_cover_map := make(map[int]bool)
+
 	for nid, loc := range graph_prop.Nodes {
 		var gNode gpsnode
 
@@ -287,18 +324,42 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 		gNode.loc = loc 
 
 		rt.Insert(&gNode)
+
+		node_cover_map[nid] = false
 	}
 
 	var matched_point int = 0 
 
+	// change this to one-to-one matching 
+	// propagate for 4 steps 
+
+
+
+
 	for nid1, _ := range control_point_gt {
 		q := rtreego.Point{graph_gt.Nodes[nid1][0], graph_gt.Nodes[nid1][1]}
-		results := rt.NearestNeighbors(1, q)
 
-		if GPSDistance(results[0].(*gpsnode).loc, graph_gt.Nodes[nid1]) < 10.0 {
-			control_point_gt[nid1] = results[0].(*gpsnode).nid
-			matched_point += 1
+		results := rt.NearestNeighbors(10, q)
+
+		for _, result := range results {
+
+			if node_cover_map[result.(*gpsnode).nid] == true {
+				continue
+			}
+
+			if GPSDistance(result.(*gpsnode).loc, graph_gt.Nodes[nid1]) < 10.0 {
+				control_point_gt[nid1] = result.(*gpsnode).nid
+				matched_point += 1
+
+				graph_prop.propagate(result.(*gpsnode).nid, 4, func(nid int){
+						node_cover_map[nid] = true
+					})
+
+				break
+			}
 		}
+
+
 	}
 
 	fmt.Println("snapped to proposal graph, matched nodes:", matched_point)
