@@ -506,6 +506,14 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 				sum += s 
 			}
 
+			if d1 < 0.0 {
+				d2 := shortest_paths_prop[cp1_prop][cp2_prop]
+				if d2 > 0 {
+					cc += 1.0 
+					sum += 1.0
+				}				
+			}
+
 			// if int(cc) % 1000 == 0 {
 			// 	fmt.Println(int(cc), "current apls:", 1.0 - sum/cc, "progress:", float64(pair_num) / float64(len(control_point_gt) * len(control_point_gt)/2) * 100.0)
 			// }
