@@ -16,6 +16,8 @@ import (
 var interval_1 int = 37
 var interval_2 float64 = 25.0 
 var min_distance_filter float64 = 100.0 
+var spacenet int = 0 
+var prop_step int = 4
 
 
 type graph struct{
@@ -318,7 +320,7 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 					lockeys[lk] = true
 					control_point_gt[nid] = -1
 
-					graph_prop.propagate(nid, 4, func(nid int){
+					graph_prop.propagate(nid, prop_step, func(nid int){
 									node_cover_map_gt[nid] = true
 								})
 				}
@@ -371,7 +373,7 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 				control_point_gt[nid1] = result.(*gpsnode).nid
 				matched_point += 1
 
-				graph_prop.propagate(result.(*gpsnode).nid, 4, func(nid int){
+				graph_prop.propagate(result.(*gpsnode).nid, prop_step, func(nid int){
 						node_cover_map[nid] = true
 					})
 
@@ -710,6 +712,8 @@ func main() {
 		interval_1 = 15
 		interval_2 = 10.0 
 		min_distance_filter = 10.0 
+		spacenet = 1
+		prop_step = 0
 	}
 
 
