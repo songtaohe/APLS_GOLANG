@@ -13,6 +13,11 @@ import (
 
 )
 
+var interval_1 int = 37
+var interval_2 float64 = 25.0 
+var min_distance_filter float64 = 100.0 
+
+
 type graph struct{
 	// base info
 	Nodes	[][2]float64 
@@ -278,8 +283,8 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 				// city wide parameter: 37 50 meters 25.0
 				// spacenet : 15 20 meters 10.0
 
-				if len(chain) > 15 { // 50 meters
-					n := int(float64(len(chain)) / 10.0) + 1
+				if len(chain) > interval_1 { // 50 meters
+					n := int(float64(len(chain)) / interval_2) + 1
 
 					for i := 1; i < n; i ++ {
 						idx := int(float64(len(chain)) * float64(i)/float64(n))
@@ -493,7 +498,7 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 			} 
 
 			d1 := shortest_paths_gt[cp1_gt][cp2_gt]
-			if d1 > 10.0 {
+			if d1 > min_distance_filter {
 				d2 := shortest_paths_prop[cp1_prop][cp2_prop]
 
 				if d2 < 0 {
@@ -509,13 +514,13 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 				sum += s 
 			}
 
-			if d1 < 0.0 {
-				d2 := shortest_paths_prop[cp1_prop][cp2_prop]
-				if d2 > 0 {
-					cc += 1.0 
-					sum += 1.0
-				}				
-			}
+			// if d1 < 0.0 {
+			// 	d2 := shortest_paths_prop[cp1_prop][cp2_prop]
+			// 	if d2 > 0 {
+			// 		cc += 1.0 
+			// 		sum += 1.0
+			// 	}				
+			// }
 
 			// if int(cc) % 1000 == 0 {
 			// 	fmt.Println(int(cc), "current apls:", 1.0 - sum/cc, "progress:", float64(pair_num) / float64(len(control_point_gt) * len(control_point_gt)/2) * 100.0)
@@ -699,6 +704,16 @@ func apls(graph_gt *graph, graph_prop *graph) {
 func main() {
 	graph_gt := LoadGraphFromJson(os.Args[1])
 	graph_prop := LoadGraphFromJson(os.Args[2])
+
+	if len(os.Args) > 4 {
+		fmt.Println("Spacenet")
+		interval_1 = 15
+		interval_2 = 10.0 
+		min_distance_filter = 10.0 
+	}
+
+
+
 
 	graph_gt_dense := GraphDensify(graph_gt)
 	graph_prop_dense := GraphDensify(graph_prop)
