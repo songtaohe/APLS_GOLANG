@@ -320,7 +320,7 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 					lockeys[lk] = true
 					control_point_gt[nid] = -1
 
-					graph_prop.propagate(nid, prop_step, func(nid int){
+					graph_prop.propagate(nid, 4, func(nid int){
 									node_cover_map_gt[nid] = true
 								})
 				}
@@ -709,9 +709,9 @@ func main() {
 
 	if len(os.Args) > 4 {
 		fmt.Println("Spacenet")
-		interval_1 = 15
-		interval_2 = 10.0 
-		min_distance_filter = 10.0 
+		interval_1 = 23
+		interval_2 = 15.0 
+		min_distance_filter = 50.0 
 		spacenet = 1
 		prop_step = 0
 	}
