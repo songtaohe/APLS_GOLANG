@@ -709,9 +709,9 @@ func main() {
 
 	if len(os.Args) > 4 {
 		fmt.Println("Spacenet")
-		interval_1 = 23
-		interval_2 = 15.0 
-		min_distance_filter = 50.0 
+		interval_1 = 8
+		interval_2 = 5.0 
+		min_distance_filter = 10.0 
 		spacenet = 1
 		prop_step = 0
 	}
