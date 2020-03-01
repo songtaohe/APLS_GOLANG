@@ -242,6 +242,11 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 
 	control_point_gt := make(map[int]int)
 
+	node_cover_map_gt := make(map[int]bool)
+	for nid, _ := range graph_gt.Nodes {
+		node_cover_map_gt[nid] = false
+	}
+
 	for nid, _ := range graph_gt.Nodes {
 		if len(graph_gt.neighbors[nid]) != 2 {
 			//fmt.Println("len(graph_gt.neighbors[nid])", nid, graph_gt.neighbors[nid])
@@ -276,13 +281,19 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 					for i := 1; i < n; i ++ {
 						idx := int(float64(len(chain)) * float64(i)/float64(n))
 
-						if GPSInBound(graph_gt.Nodes[chain[idx]]) {
+						if GPSInBound(graph_gt.Nodes[chain[idx]]) && node_cover_map_gt[chain[idx]] == false {
 
 							lk := lockey(graph_gt.Nodes[chain[idx]], 2.0)
 
 							if _, ok := lockeys[lk]; !ok {
 								lockeys[lk] = true
 								control_point_gt[chain[idx]] = -1
+
+
+								graph_prop.propagate(chain[idx], 4, func(nid int){
+									node_cover_map_gt[nid] = true
+								})
+
 							}
 						}
 					}
@@ -293,11 +304,15 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 				}
 			}
 
-			if GPSInBound(graph_gt.Nodes[nid]) {
+			if GPSInBound(graph_gt.Nodes[nid]) && (node_cover_map_gt[nid] == false || len(graph_gt.neighbors[nid])==1){
 				lk := lockey(graph_gt.Nodes[nid], 2.0)
 				if _, ok := lockeys[lk]; !ok {
 					lockeys[lk] = true
 					control_point_gt[nid] = -1
+
+					graph_prop.propagate(nid, 4, func(nid int){
+									node_cover_map_gt[nid] = true
+								})
 				}
 			}
 
@@ -332,9 +347,6 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 
 	// change this to one-to-one matching 
 	// propagate for 4 steps 
-
-
-
 
 	for nid1, _ := range control_point_gt {
 		q := rtreego.Point{graph_gt.Nodes[nid1][0], graph_gt.Nodes[nid1][1]}
