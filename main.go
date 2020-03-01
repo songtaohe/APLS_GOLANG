@@ -275,8 +275,11 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 				}
 				//fmt.Println("outloop")
 
-				if len(chain) > 37 { // 50 meters
-					n := int(float64(len(chain)) / 25.0) + 1
+				// city wide parameter: 37 50 meters 25.0
+				// spacenet : 15 20 meters 10.0
+
+				if len(chain) > 15 { // 50 meters
+					n := int(float64(len(chain)) / 10.0) + 1
 
 					for i := 1; i < n; i ++ {
 						idx := int(float64(len(chain)) * float64(i)/float64(n))
