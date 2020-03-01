@@ -490,7 +490,7 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 			} 
 
 			d1 := shortest_paths_gt[cp1_gt][cp2_gt]
-			if d1 > 100.0 {
+			if d1 > 10.0 {
 				d2 := shortest_paths_prop[cp1_prop][cp2_prop]
 
 				if d2 < 0 {
