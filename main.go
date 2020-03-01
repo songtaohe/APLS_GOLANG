@@ -709,11 +709,11 @@ func main() {
 
 	if len(os.Args) > 4 {
 		fmt.Println("Spacenet")
-		interval_1 = 8
-		interval_2 = 5.0 
-		min_distance_filter = 10.0 
+		interval_2 = 5.0 // 10 meters (5 * 2)
+		interval_1 = int(interval_2*1.5) 
+		min_distance_filter = 10.0 // 10 meters
 		spacenet = 1
-		prop_step = 0
+		prop_step = 4
 	}
 
 
