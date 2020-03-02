@@ -76,14 +76,28 @@ func GPSInBound(p1 [2]float64) bool {
 	lat_top_left := 41.0 
 	lon_top_left := -71.0
 
-	lat2 := lat_top_left - 2048.0/111111.0
-	lon2 := lon_top_left + 2048.0/111111.0 / math.Cos(lat_top_left/180.0 * 3.1415926)
+	if spacenet == 0 {
+		lat2 := lat_top_left - 2048.0/111111.0
+		lon2 := lon_top_left + 2048.0/111111.0 / math.Cos(lat_top_left/180.0 * 3.1415926)
 
-	if p1[0] > lat2 + 100.0/111111.0 && p1[0] < lat_top_left - 100.0/111111.0 && p1[1] > lon_top_left + 100.0/111111.0 / math.Cos(lat_top_left/180.0 * 3.1415926) && p1[1] < lon2 - 100.0/111111.0 / math.Cos(lat_top_left/180.0 * 3.1415926) {
-		return true
+		if p1[0] > lat2 + 100.0/111111.0 && p1[0] < lat_top_left - 100.0/111111.0 && p1[1] > lon_top_left + 100.0/111111.0 / math.Cos(lat_top_left/180.0 * 3.1415926) && p1[1] < lon2 - 100.0/111111.0 / math.Cos(lat_top_left/180.0 * 3.1415926) {
+			return true
+		} else {
+			return false 
+		}
+
 	} else {
-		return false 
+		lat2 := lat_top_left - 352.0/111111.0
+		lon2 := lon_top_left + 352.0/111111.0 / math.Cos(lat_top_left/180.0 * 3.1415926)
+
+		if p1[0] > lat2 + 30.0/111111.0 && p1[0] < lat_top_left - 30.0/111111.0 && p1[1] > lon_top_left + 30.0/111111.0 / math.Cos(lat_top_left/180.0 * 3.1415926) && p1[1] < lon2 - 30.0/111111.0 / math.Cos(lat_top_left/180.0 * 3.1415926) {
+			return true
+		} else {
+			return false 
+		}
 	}
+
+	return false 
 }
 
 type gpsnode struct {
