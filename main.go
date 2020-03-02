@@ -727,7 +727,7 @@ func main() {
 		interval_1 = int(interval_2*1.5) 
 		min_distance_filter = 10.0 // 10 meters
 		spacenet = 1
-		prop_step = 4
+		prop_step = 3
 	}
 
 
