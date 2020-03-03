@@ -12,12 +12,12 @@ import (
 	"container/heap"
 
 )
-
-var interval_1 int = 37
-var interval_2 float64 = 25.0 
-var min_distance_filter float64 = 100.0 
-var spacenet int = 0 
-var prop_step int = 4
+// for 2k by 2k tiles
+var interval_1 int = 37  // 50 meters for control points (25*1.5=37)
+var interval_2 float64 = 25.0 // 50 meters for control points  (25*2=50)
+var min_distance_filter float64 = 100.0 // don't consider shortest path shorter than 100.0
+var spacenet int = 0  // 
+var prop_step int = 4 // one-to-one matching, if two control points mapped to A,B in the inferred graph, distance between A and B on the graph should greater than '4' hops 
 
 
 type graph struct{
@@ -720,8 +720,9 @@ func apls(graph_gt *graph, graph_prop *graph) {
 func main() {
 	graph_gt := LoadGraphFromJson(os.Args[1])
 	graph_prop := LoadGraphFromJson(os.Args[2])
-
+	// os.Args[3] is the output file 
 	if len(os.Args) > 4 {
+		// See the header of this file for a detailed description of these parameters 
 		fmt.Println("Spacenet")
 		interval_2 = 5.0 // 10 meters (5 * 2)
 		interval_1 = int(interval_2*1.5) 
