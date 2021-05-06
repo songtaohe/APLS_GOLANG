@@ -514,7 +514,7 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 				continue 
 			} 
 
-			d1 := shortest_paths_gt[cp1_gt][cp2_gt]
+			//d1 := shortest_paths_gt[cp1_gt][cp2_gt]
 			if d1 > min_distance_filter {
 				d2 := shortest_paths_prop[cp1_prop][cp2_prop]
 
