@@ -725,9 +725,14 @@ func main() {
 	if len(os.Args) > 4 {
 		// See the header of this file for a detailed description of these parameters 
 		fmt.Println("Spacenet")
-		interval_2 = 5.0 // 10 meters (5 * 2)
+		// interval_2 = 5.0 // 10 meters (5 * 2)
+		// interval_1 = int(interval_2*1.5) 
+		// min_distance_filter = 10.0 // 10 meters
+		// spacenet = 1
+		// prop_step = 3
+		interval_2 = 15.0 // 10 meters (5 * 2)
 		interval_1 = int(interval_2*1.5) 
-		min_distance_filter = 10.0 // 10 meters
+		min_distance_filter = 30.0 // 30 meters
 		spacenet = 1
 		prop_step = 3
 	}
