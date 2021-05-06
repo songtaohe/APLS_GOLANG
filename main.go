@@ -506,8 +506,9 @@ func apls_one_way(graph_gt *graph, graph_prop *graph, ret chan float64) {
 			// if cp1_prop == -1 || cp2_prop == -1 {
 			// 	fmt.Println(shortest_paths_prop[cp1_prop][cp2_prop])
 			// }
+			d1 := shortest_paths_gt[cp1_gt][cp2_gt]
 
-			if cp1_prop == -1 || cp2_prop == -1 {
+			if (cp1_prop == -1 || cp2_prop == -1) && (d1 > 0.0) {
 				cc += 1.0
 				sum += 1.0
 				continue 
